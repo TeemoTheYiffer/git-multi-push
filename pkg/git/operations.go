@@ -60,6 +60,8 @@ func (g *GitOperation) ShowStatus() error {
 
 func (g *GitOperation) SaveConfig(config *Config) error {
 	configDir := g.GetConfigDir()
+	g.logger.Printf("Creating config directory: %s", configDir)
+
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %v", err)
 	}
@@ -70,11 +72,14 @@ func (g *GitOperation) SaveConfig(config *Config) error {
 	}
 
 	configPath := filepath.Join(configDir, "config.json")
+	g.logger.Printf("Saving config to: %s", configPath)
+
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config: %v", err)
 	}
 
 	g.config = config
+	g.logger.Printf("Configuration saved successfully to %s", configPath)
 	return nil
 }
 

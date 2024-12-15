@@ -22,5 +22,8 @@ go.work
 go.work.sum
 
 # env file
-.envbuild/
-*.Zone.Identifier
+.env
+build/
+*:Zone.Identifier
+*.log
+build/git-multi-push

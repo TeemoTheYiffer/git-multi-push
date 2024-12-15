@@ -4,7 +4,23 @@ A Go app for pushing Git repositories to multiple remote sources (GitHub and/or 
 
 ## Prerequisites
 
-- Working knowledge of basic git commands
+- Go (1.16 or later)
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install golang-go
+
+# RHEL/CentOS/Fedora
+sudo dnf install golang
+
+# macOS (using Homebrew)
+brew install go
+
+# Windows
+# Download from https://golang.org/dl/
+# Or use Chocolatey:
+choco install golang
+```
 - Git installed and configured on your system
 - SSH keys set up for your GitHub/GitLab accounts
 
@@ -80,8 +96,16 @@ chmod +x build.sh
 # Clean build artifacts
 ./build.sh clean
 ```
+The compiled binary will be in the `build` directory.
 
-3. The compiled binary will be in the `build` directory.
+3. (OPTIONAL) Add to your PATH:
+```bash
+# For Linux/macOS
+sudo cp build/git-multi-push /usr/local/bin/
+
+# For Windows
+# Copy build/git-multi-push.exe to a directory in your PATH
+```
 
 ## Setup
 

@@ -138,7 +138,46 @@ func main() {
 
 	// Handle setup mode
 	if *setupMode {
-		// ... setup code remains the same ...
+		logger.Println("Starting setup configuration...")
+
+		config := &git.Config{}
+
+		fmt.Println("\nEnter GitHub information:")
+		fmt.Println("(Just the repository name, not the full URL)")
+		fmt.Print("GitHub username: ")
+		fmt.Scanln(&config.GithubUsername)
+
+		fmt.Print("GitHub repository name (e.g., 'repository-name'): ")
+		fmt.Scanln(&config.GithubRepo)
+
+		fmt.Println("\nEnter GitLab information (press Enter to skip):")
+		fmt.Print("GitLab username: ")
+		fmt.Scanln(&config.GitlabUsername)
+
+		if config.GitlabUsername != "" {
+			fmt.Print("GitLab repository name: ")
+			fmt.Scanln(&config.GitlabRepo)
+		}
+
+		// Confirm settings before saving
+		fmt.Println("\nConfiguration to be saved:")
+		fmt.Printf("GitHub: %s/%s\n", config.GithubUsername, config.GithubRepo)
+		if config.GitlabUsername != "" {
+			fmt.Printf("GitLab: %s/%s\n", config.GitlabUsername, config.GitlabRepo)
+		}
+
+		fmt.Print("\nIs this correct? [Y/n]: ")
+		var confirm string
+		fmt.Scanln(&confirm)
+		if confirm != "" && strings.ToLower(confirm) != "y" {
+			logger.Println("Setup cancelled")
+			return
+		}
+
+		if err := gitOp.SaveConfig(config); err != nil {
+			logger.Fatalf("Failed to save configuration: %v", err)
+		}
+		logger.Println("Configuration saved successfully")
 		return
 	}
 
