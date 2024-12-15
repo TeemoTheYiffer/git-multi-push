@@ -23,22 +23,6 @@ type GitOperation struct {
 	config *Config
 }
 
-// Helper function to extract repo name from URL or plain name
-func ExtractRepoName(input string) string {
-	// Handle full URLs
-	if strings.Contains(input, "://") {
-		// Remove .git suffix if present
-		input = strings.TrimSuffix(input, ".git")
-		// Get the last part of the path
-		parts := strings.Split(input, "/")
-		if len(parts) > 0 {
-			return parts[len(parts)-1]
-		}
-	}
-	// Return as-is if it's just a name
-	return strings.TrimSuffix(input, ".git")
-}
-
 func NewGitOperation(logger *log.Logger) *GitOperation {
 	return &GitOperation{
 		logger: logger,
@@ -65,6 +49,13 @@ func (g *GitOperation) LoadConfig() error {
 		return fmt.Errorf("invalid config format: %v", err)
 	}
 	return nil
+}
+
+func (g *GitOperation) ShowStatus() error {
+	cmd := exec.Command("git", "status")
+	cmd.Stdout = os.Stdout // Direct output to console
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func (g *GitOperation) SaveConfig(config *Config) error {
@@ -191,7 +182,46 @@ func (g *GitOperation) ValidateMerge(fromBranch, toBranch string) error {
 	return nil
 }
 
-// Update the existing MergeBranch method
+func (g *GitOperation) HasUncommittedChanges() (bool, error) {
+	cmd := exec.Command("git", "status", "--porcelain")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to check status: %v", err)
+	}
+
+	// Add debug logging
+	g.logger.Printf("Checking for uncommitted changes: %v", len(output) > 0)
+	if len(output) > 0 {
+		g.logger.Printf("Uncommitted changes:\n%s", string(output))
+	}
+
+	return len(output) > 0, nil
+}
+
+func (g *GitOperation) Commit(message string) error {
+	// Debug: Log commit attempt
+	g.logger.Printf("Attempting to commit with message: %s", message)
+
+	// Stage all changes
+	g.logger.Printf("Staging changes...")
+	addCmd := exec.Command("git", "add", ".")
+	if output, err := addCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to stage changes: %s", string(output))
+	}
+
+	// Commit changes
+	g.logger.Printf("Committing changes...")
+	commitCmd := exec.Command("git", "commit", "-m", message)
+	output, err := commitCmd.CombinedOutput()
+	g.logger.Printf("Commit output: %s", string(output))
+
+	if err != nil {
+		return fmt.Errorf("failed to commit: %s", string(output))
+	}
+
+	return nil
+}
+
 func (g *GitOperation) MergeBranch(fromBranch, toBranch, message string) error {
 	// Validate the merge
 	if err := g.ValidateMerge(fromBranch, toBranch); err != nil {

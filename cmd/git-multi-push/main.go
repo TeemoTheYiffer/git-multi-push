@@ -18,6 +18,40 @@ func readUserInput(prompt string) string {
 	return strings.TrimSpace(input)
 }
 
+func handleCommit(gitOp *git.GitOperation) error {
+	hasChanges, err := gitOp.HasUncommittedChanges()
+	if err != nil {
+		return err
+	}
+
+	if !hasChanges {
+		fmt.Println("No changes to commit")
+		return nil
+	}
+
+	fmt.Println("\nCurrent git status:")
+	if err := gitOp.ShowStatus(); err != nil {
+		return err
+	}
+
+	commit := readUserInput("\nWould you like to commit these changes? [y/N]: ")
+	if strings.ToLower(commit) != "y" {
+		return fmt.Errorf("changes must be committed before pushing. Operation cancelled")
+	}
+
+	message := readUserInput("Enter commit message: ")
+	if message == "" {
+		return fmt.Errorf("commit message cannot be empty")
+	}
+
+	if err := gitOp.Commit(message); err != nil {
+		return err
+	}
+
+	fmt.Println("Changes committed successfully")
+	return nil
+}
+
 func handleMerge(gitOp *git.GitOperation) error {
 	// Sync with remotes first
 	fmt.Println("Synchronizing with remotes...")
