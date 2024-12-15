@@ -53,15 +53,29 @@ func handleCommit(gitOp *git.GitOperation) error {
 }
 
 func handleMerge(gitOp *git.GitOperation) error {
-	// Sync with remotes first
-	fmt.Println("Synchronizing with remotes...")
-	if err := gitOp.SyncWithRemotes(); err != nil {
-		return fmt.Errorf("failed to sync with remotes: %v", err)
+	// Get list of branches first
+	branches, err := gitOp.ListBranches()
+	if err != nil {
+		return err
 	}
 
 	currentBranch, err := gitOp.GetCurrentBranch()
 	if err != nil {
 		return err
+	}
+
+	// Filter out current branch from available branches
+	availableBranches := []string{}
+	for _, branch := range branches {
+		if branch != currentBranch {
+			availableBranches = append(availableBranches, branch)
+		}
+	}
+
+	// If no other branches available, skip merge prompt
+	if len(availableBranches) == 0 {
+		fmt.Println("\nNo other branches available for merging.")
+		return nil
 	}
 
 	// Ask if user wants to merge
@@ -72,30 +86,15 @@ func handleMerge(gitOp *git.GitOperation) error {
 	}
 
 	// Show available branches
-	branches, err := gitOp.ListBranches()
-	if err != nil {
-		return err
-	}
-
 	fmt.Println("\nAvailable branches:")
-	for i, branch := range branches {
-		if branch != currentBranch { // Only show branches that aren't current
-			fmt.Printf("%d: %s\n", i+1, branch)
-		}
-	}
-
-	if len(branches) <= 1 {
-		return fmt.Errorf("no other branches available to merge into")
+	for i, branch := range availableBranches {
+		fmt.Printf("%d: %s\n", i+1, branch)
 	}
 
 	// Get target branch
 	targetBranch := readUserInput("\nEnter the branch name to merge into: ")
-	if targetBranch == currentBranch {
-		return fmt.Errorf("cannot merge a branch into itself")
-	}
-
 	found := false
-	for _, branch := range branches {
+	for _, branch := range availableBranches {
 		if branch == targetBranch {
 			found = true
 			break
@@ -139,7 +138,8 @@ func main() {
 
 	// Handle setup mode
 	if *setupMode {
-		// ... [setup code remains the same]
+		// ... setup code remains the same ...
+		return
 	}
 
 	// Check if we're in a git repository
@@ -149,12 +149,24 @@ func main() {
 	}
 	logger.Printf("Operating on git repository at: %s", repoPath)
 
-	// Handle merge if requested
+	// Step 1: Sync with remotes
+	fmt.Println("Synchronizing with remotes...")
+	if err := gitOp.SyncWithRemotes(); err != nil {
+		logger.Printf("Warning: Failed to sync with remotes: %v", err)
+		// Continue anyway as this might be first push
+	}
+
+	// Step 2: Handle commits if there are changes
+	if err := handleCommit(gitOp); err != nil {
+		logger.Fatal(err)
+	}
+
+	// Step 3: Handle merge if requested
 	if err := handleMerge(gitOp); err != nil {
 		logger.Fatal(err)
 	}
 
-	// Push to remotes
+	// Step 4: Push to remotes
 	if err := gitOp.Push(*forcePush); err != nil {
 		logger.Fatal(err)
 	}
